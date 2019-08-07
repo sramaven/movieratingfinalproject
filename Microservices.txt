@@ -1,0 +1,336 @@
+Spring Microservices:
+------------------------------
+
+Spring MVC:
+-- UI layer
+-- Controllers
+-- Services
+-- Repositories
+-- Model
+
+E-commerce using Spring MVC:
+-- Customer service
+-- Product service
+-- Cart service
+-- Order service 
+
+-- war (web archive) deploy on server
+
+-- Product service is used very frequently (There are more hits to the Product service)
+-- One solution: We have to scale our application. We ave to deploy the same war file on another server (There is another instance of our application).
+-- Such applications are called as Monolithic application. 
+Problem:
+1) We have to scale complete application.
+2) If I make any changes to my application, I have to repackage it and redeploy on servers.
+
+Microservices:
+
+There are 4 services:
+a) Customer service (Spring Boot project)
+b) Product service (Spring Boot project)
+c) Cart service (Spring Boot project)
+d) Order service (Spring Boot project)
+ 
+All above projects are packaged into jar file
+
+-- I will pick up Product service spring boot project and deploy on another instance.
+-- If we have to make any changes to our code. That service needs to be redeployed. If changes in one service needs to change another service, then we have to also modify and redeploy that service.
+-- We can keep versions of our microservices.
+
+Spring Boot: 
+- Best for creating microservices
+
+Why to use Spring Boot:
+-- Auto configuration 
+   e.g if we are creating spring-web project, then it automatically configures DispatcherServlet.
+   application.properties: Based on properties that you have added in application.properties, Spring    boot does necessary configurations for you.
+-- It also does autoconfiguration based on dependecies in your pom.xml file.
+
+Spring Boot is having starter projects:
+-- a) spring-boot-starter-web
+    b) spring-boot-starter-security
+    c) spring-boot-stater-jdbc
+
+-- One dependency
+-- No need to worry about all required dependencies
+-- No need to worry about versions of required dependencies
+-- Everything is managed by Spring Boot
+
+-- Spring Boot is having embedded database (H2) - Only use for development purpose, not for production.
+-- Spring Boot is having embedded servers (Apache Tomcat, Jetty, Undertow):
+
+How can I use Jetty or Undertow servers?
+-- Remove Tomcat dependency from pom.xml and add dependecy for Jetty ot Undertow.
+
+> java -jar product-service.jar
+
+How to create Spring Boot projects?
+-- Spring Initializer (http://start.spring.io)
+-- IDEs
+-- Spring CLI (Command Line Interface)
+
+Spring DevTools: 
+-- Auto reloading / Live Reloading
+-- In production environment, it is off. Only useful in Development environment
+
+
+goodreads - 
+
+1) catalog-service (user id - amitfegade) - returns all the movies for which I have rated.
+    input - userId, output - CatalogItems
+
+2) movie-service ( movie id - 101, title, releaseYear, casts, ....) - returns the movie information - 8081
+                      input - movieId, output - Movie object
+
+3) movie-rating-service - returns ratings of the movies for a specific user. - 8082
+                      input - userId, output - List of ratings [movieId - rating]
+
+userId:   amitfegade
+List<Rating> - [101-4, 102-5, 103-2]
+
+How can I call one microservice from another micorservice?
+-- By using RestTemplate class
+
+<bean id="restTemplate" class="...RestTemplate" />
+
+@Bean
+public RestTemplate getRestTemplate() {
+	return new RestTemplate();
+}
+
+@SpringBootApplication - a) @SpringBootConfiguration    b) @ComponentScan   c) @EnableAutoConfiguration
+
+
+<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+		</dependency>
+		
+ <dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.springframework.cloud</groupId>
+				<artifactId>spring-cloud-dependencies</artifactId>
+				<version>Greenwich.SR1</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>		
+
+<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-netflix-eureka-server</artifactId>
+		</dependency>
+
+=============================================================================================================
+
+What's the problem with current architecture?
+
+-- hard conding of the URLs.
+
+Why Hard Code URLs are bad?
+-- changes require code updates.
+-- Dynamic URLs in the cloud. (what if you have deployed your microservices on cloud say AWS, you will get dynamic IPs and URLs.
+-- Load Balancing (1 microservice - multiple instances say 3 instances (3 different URLs which one I have to use).
+-- Multiple environments (Different environments - different URLs e.g dev, prod, QA for each environments)
+
+What's the solution?
+-- service discovery
+
+Netflix:
+-- Eureka
+-- Ribbon
+-- Hystrix
+-- Zuul
+ 
+Spirng Cloud: 
+
+application.properties:
+------------------------
+-- server port
+-- database configurations
+-- logging configuration
+-- application name
+
+Next problem:
+-- What else if application.properties file changes?
+-- May be port no. changes, database credentials changes, database properties are changed,
+then we have to change application.properties file and repack application and redeploy it.
+If applicationhas multiple instances running, then we have to make changes to every instance.
+
+Solution: Externalized configuration. It means application.properties should be outside of the 
+service
+
+-- Where to keep those applictaion.properties files?
+-- A place which is highly available (Github)
+
+-- Do I need to refer properties file directly from services?
+-- Any problem in this? - Yes, what else out Github repo changes or we moved from Github to Gitlab
+or bitbucket? URL changes and we have to change our service configuration and provide the new link.
+
+-- What's the solution to the above problem?
+solution: config server
+
+  
+server.port=8855
+spring.cloud.config.server.git.uri=YOUR_GITHUB_REPO_LINK
+
+==================================================================================
+Common problems in Microservices:
+
+Terms:
+1) Fault Tolerance: Given an application, if there is a fault, what is the impact of that fault.
+e.g. one micorservice goes down, what will happen to your application?, is your whole application affects due to that microservice or some portion of your application will not work, or you may have some recovery technique so that it won't affect at all to your application.
+
+2) Resilience: How many faults a system can tolerate. That indicates how resilient it is. Resilience is the capacity to recover quickly from faults;
+
+How to make system Resilient?
+-- Our services are not even have any mechanism to make it resilient. No fault tolerant. We don't even have try..catch block. 
+
+Some common issues in microservices:
+
+a) What if microservice instance goes down?
+Solution:- Create multiple instances running on different machines. Thanks to service discovery.
+
+b) What if your service is slow?
+solution: a) Set the timeout period. (Temporary solution and not recommended at all)
+
+request -> thread -> successful (CatalogItems)
+request -> thread -> successful (No of movies)
+
+
+request -> thread -> failed (CatalogItems) [Trying to get response from Movie-Info-Service]
+request -> thread -> failed (CatalogItems) [Trying to get response from Movie-Info-Service]
+request -> thread -> failed (CatalogItems) [Trying to get response from Movie-Info-Service]
+request -> thread -> failed (CatalogItems) [Trying to get response from Movie-Info-Service]
+request -> thread -> successful (No of movies)
+request -> thread -> successful (No of movies)
+request -> thread -> failed (CatalogItems) [Trying to get response from Movie-Info-Service]
+request -> thread -> failed (CatalogItems) [Trying to get response from Movie-Info-Service]
+request -> thread -> failed (CatalogItems) [Trying to get response from Movie-Info-Service]
+request -> thread -> failed (CatalogItems) [Trying to get response from Movie-Info-Service]
+
+HttpComponentsClientHttpRequestFactory clientHttpRequestFactory = new HttpComponentsClientHttpRequestFactory();
+clientHttpRequestFactory.setConnectTimeout(3000);
+return new RestTemplate(clientHttpRequestFactory);
+
+Circuit Breaker pattern:
+----------------------------
+
+3 steps which are common in every application:
+
+a) Detect something is wrong
+b) Take some temporary decision to avoid situation getting worst.
+c) Deactivate the "problem" component so that it doesn't affect downstream components.
+
+This is a circuit breaker pattern. (Automatically or manually up)
+
+When circuit should break?
+-- e.g. power circuit breakes when it crosses the limit.
+what parameters for microservices?
+What action should microservice take for circuit breaking?
+
+request -> success
+request -> Timeout
+request -> success
+request -> Error
+request -> Timeout
+request -> Timeout
+request -> success
+
+Last 3 requests failed, I will break the curcuit. But what else there is alternative success and failed.
+Be smart to decide when circuit breaks
+
+Circuit breaker parameters:
+a) Last n requests consider for the decision:  10
+b) How many of those should fail? 3
+c) Timeout duration: (Wait for 3 seconds and doesn't get response, then marked as failed) 3s
+
+When does circuit gets back to normal?
+-- How long after a circuit trip to try again.
+-- How long to wait: 10s
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+What to do when circuit breaks?
+-- We need a fallback. 
+a) Throw an error (Its not a good idea)
+b) Better approach is return a fallback "default" response.
+c) Save previous responses (cache) and use that when possible.
+
+Why circuit breaker?
+-- failing fast.
+-- Circuit breakers provide fallback functionality
+-- Automatic recovery.
+
+Do you want to implement circuit breaker pattern as your own?
+-- Nope. Very difficult to deal with concurrency programming and timeouts.
+
+Thanks to Hystrix for rescue.
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+What is Hystrix?
+-- Open source library created by Netlfix.
+-- implements circuit breaker pattern. 
+-- Give the config parameters and it does the work.
+-- Workd well with the spring boot.
+
+Adding Hystrix to Spring Boot microservices:
+a) Add maven dependency spring-cloud-starter-netflix-hystrix
+b) Add @EnableCircuitBreakerto application class
+c) Add @HystrixCommand to methods that need circuit breakers. (Methods that make external call)
+d) Config Hystrix behavior.
+
+Hystrix Dashboard:
+-------------------
+-- add binaries to classpath
+-- UI with display - What are the circuit breakers you have in your system, what are the circuits are opened, what are the circuits are closed, the number of requests that are coming in, the number of timed out happens. we get entire information about this in visual format.
+
+2 ways to set up this:
+a) for individual application/microservice
+b) one separate application that can be setup for bunch of other microservices.
+
+Add dependencies:
+a) spring-cloud-starter-netflix-hystrix-dashboard
+b) spring-boot-starter-actuator
+
+Add @EnableHystrixDashboard annotation to the application class.
+
+Add the below property to application.properties
+management.endpoints.web.exposure.include=hystrix.stream
+-- I am providing or exposing an end point in my application which streams hystrix data. I am exposing an endpoint hystrix.stream which is where the hystrix data is gonna be streamed and thatsh hystrix dashboard is gonna do is gonna use to show the hystrix information.
+
+http://localhost:PORT/hystrix 
+
+
+Zuul API Gateway:
+---------------------------------
+CORs, Authentication, authorization, security
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
